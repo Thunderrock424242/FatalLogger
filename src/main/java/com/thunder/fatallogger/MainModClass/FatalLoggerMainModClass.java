@@ -18,7 +18,7 @@ public class FatalLoggerMainModClass {
         public static final ExtendedLogger LOGGER = (ExtendedLogger)
                 LoggerFactory.getLogger(FatalLoggerMainModClass.class);
 
-        public static final String MOD_ID = "FatalLogger";
+        public static final String MOD_ID = "fatallogger";
 
 
 
