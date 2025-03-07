@@ -1,0 +1,272 @@
+Advanced AI API – Modder Documentation
+1. Overview
+Welcome to the Advanced AI API, a versatile system for creating custom entity behaviors in Minecraft (Neoforge 1.21.1). This API lets you add:
+
+Behavior Trees (Selector/Sequence/Parallel, etc.)
+Utility AI (score-based decision-making)
+Concurrent or Hierarchical tasks
+Contextual Event handling
+Data-Driven (JSON) or Script-Based behaviors
+By leveraging this API, you can easily replace or enhance vanilla AI, implement complex entity logic, and give players more dynamic in-game interactions.
+
+2. Setup and Dependencies
+Neoforge 1.21.1
+
+Confirm your modding workspace is set up for Neoforge 1.21.1.
+Add the Advanced AI API
+
+In your build.gradle (or equivalent), add:
+groovy
+Copy
+Edit
+dependencies {
+    // Replace with actual groupId/artifactId/version from your distribution
+    implementation fg.deobf("com.example:advancedai:1.0.0")
+}
+If you’re just including it in a modpack, place the compiled JAR in the mods/ folder.
+Java Version
+
+Use Java 17 (or the Java version required by Neoforge 1.21.1).
+3. Getting Started
+3.1. Capability & Controller
+The API attaches a capability to each LivingEntity. This capability stores an AIController instance, which manages either a Behavior Tree or a Utility AI (or both).
+
+Attach on Entity Join
+Typically done via EntityJoinLevelEvent:
+java
+Copy
+Edit
+@SubscribeEvent
+public void onEntityJoin(EntityJoinLevelEvent event) {
+    if (event.getEntity() instanceof LivingEntity living) {
+        living.getCapability(AdvancedAICapability.CAPABILITY).ifPresent(cap -> {
+            if (cap.getController() == null) {
+                AIController controller = new AIController(living);
+                cap.setController(controller);
+            }
+        });
+    }
+}
+Tick Your AI
+Use LivingEvent.LivingTickEvent or TickEvent.WorldTickEvent to call controller.tick() every server tick:
+java
+Copy
+Edit
+@SubscribeEvent
+public void onLivingTick(LivingEvent.LivingTickEvent event) {
+    if (!event.getEntity().level().isClientSide && event.getEntity() instanceof LivingEntity living) {
+        living.getCapability(AdvancedAICapability.CAPABILITY).ifPresent(cap -> {
+            if (cap.getController() != null) {
+                cap.getController().tick();
+            }
+        });
+    }
+}
+3.2. Basic Behavior Tree Example
+java
+Copy
+Edit
+// 1) Create or load your BehaviorNode instances
+BehaviorNode root = new SelectorNode(
+    new SequenceNode(
+        new ConditionNode(entity -> entity.getHealth() < 5),
+        new FleeActionNode()
+    ),
+    new WanderLeafNode()
+);
+
+// 2) Wrap the root in a BehaviorTree
+BehaviorTree myTree = new BehaviorTree(root);
+
+// 3) Attach it to the AIController
+AIController controller = new AIController(myEntity);
+controller.setBehaviorTree(myTree);
+
+// 4) The AI system will tick this tree each update, if set up properly
+4. Behavior Tree Reference
+4.1. Terminology
+BehaviorNode: The base class with a tick(ServerLevel, LivingEntity) method returning Status (SUCCESS, FAILURE, or RUNNING).
+Composite Nodes: Contain multiple children (e.g., SelectorNode, SequenceNode, ParallelNode).
+Leaf Nodes: The “action” or “condition” nodes that directly move the entity, check a state, etc.
+4.2. Node Examples
+SelectorNode
+
+Tries its children in order; once one returns RUNNING or SUCCESS, it stops checking others.
+Good for “try the most important behavior first, otherwise fallback.”
+SequenceNode
+
+Executes children in order; if any fail, the entire sequence fails.
+Great for step-by-step tasks (e.g., check hunger → find food → move → eat).
+ParallelNode
+
+Runs multiple children concurrently. You define how success/failure is determined (by default, it often fails if any child fails, and succeeds if all succeed).
+ConditionNode
+
+Simple check returning SUCCESS or FAILURE immediately (e.g., entity -> entity.isInWater()).
+ActionNode / LeafNode
+
+Where the real logic goes (move, attack, flee).
+Usually returns RUNNING while in progress, and SUCCESS or FAILURE once complete.
+5. Utility AI Reference
+Utility AI is a scoring approach. Each action calculates a numeric score; the AI picks the highest.
+
+Interface: IUtilityAction
+
+java
+Copy
+Edit
+double calculateScore(LivingEntity entity);
+void start(LivingEntity entity);
+void update(ServerLevel level, LivingEntity entity);
+boolean shouldContinue(LivingEntity entity);
+void end(LivingEntity entity);
+Controller: UtilityAIController
+
+java
+Copy
+Edit
+UtilityAIController utilityAI = new UtilityAIController(debugMode);
+utilityAI.registerAction(new WanderAction());
+utilityAI.registerAction(new AttackAction());
+// ...
+
+AIController controller = new AIController(entity);
+controller.setUtilityAI(utilityAI);
+Ticking: Each tick, the controller picks the action with the highest score. It calls start(...) if the action changes, update(...) while running, and end(...) if the action finishes or is outscored.
+
+6. Advanced Customization
+6.1. Concurrency & Hierarchy
+For Behavior Trees:
+Use a ParallelNode to run multiple tasks simultaneously.
+Or nest Selectors and Sequences to build hierarchical logic.
+For Utility AI:
+You can modify the scoring system to allow multiple actions if their combined scores are within thresholds (e.g., “LookAround” might not conflict with “WalkToTarget”).
+Alternatively, keep a strict “one at a time” approach with an interrupt system.
+6.2. Contextual Events
+Forge/Neoforge Hooks: LivingHurtEvent, LivingAttackEvent, EntityJoinLevelEvent, etc.
+When triggered, pass info (like damage source, attacker ID) to your tasks or set flags on your AIController.
+Behavior Trees or Utility AI actions can read these flags next tick to respond.
+6.3. Data-Driven AI
+JSON: Provide JSON files describing tasks/nodes:
+json
+Copy
+Edit
+{
+  "type": "wander",
+  "startProbability": 0.2,
+  "speed": 1.0,
+  "maxDistance": 10
+}
+A loader (like DataDrivenTaskLoader) parses these into real nodes at runtime. This means no recompilation for small AI tweaks.
+6.4. Scripting Integration
+JavaScript (GraalVM) or Lua: Let advanced users define or override behaviors in code-like scripts.
+Expose entity data, environment info, and in-API calls (like “moveTo(x,y,z)”) so scripts can manipulate the entity.
+Performance Note: For heavy logic, consider caching scripts or limiting how often they run.
+7. Configuration & Debugging
+Config: Typically in a common.toml for the mod:
+
+toml
+Copy
+Edit
+[AdvancedAI]
+debugMode = false
+maxConcurrentTasks = 3
+debugMode: Logs more info about tasks and transitions.
+maxConcurrentTasks: Suggests how many tasks the AI might run at once (if concurrency is enabled).
+Logging:
+
+When debugMode = true, watch your console for lines like:
+csharp
+Copy
+Edit
+[AdvancedAI] Entity Cow selected AttackAction with score=12.3
+Great for diagnosing why an entity is idle or stuck.
+Troubleshooting:
+
+Make sure you remove vanilla AI goals if you want to fully control the entity.
+Check that you are calling controller.tick() on the server side.
+If you use scripts, confirm that your script engine dependencies (e.g., GraalVM libraries) are correctly loaded.
+8. Mod Integration & Best Practices
+Custom Entities:
+
+In your custom entity’s constructor, you can skip the default goal selectors and rely on the Advanced AI.
+Or mix them—some vanilla goals, plus your custom tasks.
+Vanilla Entities:
+
+If you attach the capability, the vanilla AI might still run in parallel unless you remove or override it.
+Use reflection or events to clear out the default AI goals if you want a purely custom approach.
+Performance Considerations:
+
+Behavior trees and utility AI are more CPU-heavy than simple goals. If you spawn large numbers of AI-driven entities, consider reducing concurrency, limiting event checks, or caching expensive calculations.
+If you incorporate heavy pathfinding or script logic, be mindful of the server tick time.
+Versioning:
+
+If you expand or change the API, use semantic versioning (MAJOR.MINOR.PATCH) so dependent mods know if there’s a breaking change.
+9. Example: Adding a Custom Attack Task
+Suppose you want an entity to ranged-attack the nearest player if it’s within line of sight:
+
+9.1. In a Utility AI
+Create the Action:
+java
+Copy
+Edit
+public class RangedAttackAction implements IUtilityAction {
+    @Override
+    public double calculateScore(LivingEntity entity) {
+        LivingEntity target = findPlayerInRange(entity, 16);
+        return target != null ? 10.0 : 0.0;
+    }
+    @Override
+    public void start(LivingEntity entity) { /* e.g., raise arms or face target */ }
+    @Override
+    public void update(ServerLevel level, LivingEntity entity) {
+        // If in range and line of sight, fire projectile
+    }
+    @Override
+    public boolean shouldContinue(LivingEntity entity) {
+        // Stop if no longer in range or line of sight
+        return findPlayerInRange(entity, 16) != null;
+    }
+    @Override
+    public void end(LivingEntity entity) { /* reset pose, etc. */ }
+
+    private LivingEntity findPlayerInRange(LivingEntity entity, double range) {
+        // Implementation omitted—scan for nearest player within 'range'
+        return null;
+    }
+}
+Register in UtilityAIController:
+java
+Copy
+Edit
+UtilityAIController utilityAI = new UtilityAIController(AIConfig.CONFIG.debugMode.get());
+utilityAI.registerAction(new RangedAttackAction());
+utilityAI.registerAction(new WanderAction());
+...
+9.2. In a Behavior Tree
+Create an AttackNode that checks for target, tries to shoot, returns RUNNING until done, etc.
+Insert into a SelectorNode so it’s attempted before wandering.
+10. Frequently Asked Questions
+Can I combine Behavior Trees and Utility AI at once?
+Yes. You can store both a BehaviorTree and a UtilityAIController in the same AIController. In your tick, you might run one first, or let them handle different aspects of behavior.
+
+How do I disable vanilla AI goals?
+
+For custom mobs, simply don’t add them.
+For vanilla mobs, you can clear their goalSelector and targetSelector in EntityJoinLevelEvent. (Be careful, you might break vanilla behaviors you want to keep!)
+Is your data-driven or scripting approach required?
+
+No, they’re optional. You can define everything in code if you prefer.
+Why does my script run slowly?
+
+Scripting can be slower than compiled Java, especially if you run heavy logic every tick. Consider caching or partial script usage.
+Can I save persistent data?
+
+The AdvancedAICapability can store NBT, letting you track custom states across world loads (like “hunger,” “fear,” etc.).
+11. Wrap-Up
+With the Advanced AI API, you can:
+
+Rapidly prototype complex AI for your custom entities.
+Override vanilla AI or mix in advanced behaviors.
+Give players more immersive, dynamic encounters.
+Happy modding with Neoforge 1.21.1—and enjoy building creative new AI experiences for Minecraft!

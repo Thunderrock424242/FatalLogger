@@ -1,28 +1,27 @@
-package com.thunder.fatallogger.MainModClass;
-
-import com.thunder.fatallogger.ExtendedLogger;
+package com.thunder.neocortex.MainModClass;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
-@Mod(FatalLoggerMainModClass.MOD_ID)
-public class FatalLoggerMainModClass {
+@Mod(NeoCortexMainModClass.MOD_ID)
+public class NeoCortexMainModClass {
         /**
          * The constant LOGGER.
          */
-        public static final ExtendedLogger LOGGER = (ExtendedLogger)
-                LoggerFactory.getLogger(FatalLoggerMainModClass.class);
-
-        public static final String MOD_ID = "fatallogger";
+        public static final Logger LOGGER = LogManager.getLogger("neocortex");
 
 
+    public static final String MOD_ID = "neocortex";
 
-        public FatalLoggerMainModClass(IEventBus modEventBus, ModContainer container) {
+
+
+        public NeoCortexMainModClass(IEventBus modEventBus, ModContainer container) {
             LOGGER.info("Fatal Logger initialized.");
             // Register mod setup and creative tabs
             modEventBus.addListener(this::commonSetup);

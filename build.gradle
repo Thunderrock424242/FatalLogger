@@ -22,7 +22,7 @@ repositories {
 }
 
 base {
-    archivesName = "fatallogger"
+    archivesName = "neocortex"
 }
 
 // Mojang ships Java 21 to end users starting in 1.20.5, so mods should target Java 21.
@@ -145,12 +145,12 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             neo_version            : "21.1.73",
             neo_version_range      : "21.1.73",
             loader_version_range   : "5.0.3",
-            mod_id                 : "fatallogger",
-            mod_name               : "Fatal Logger",
+            mod_id                 : "neocortex",
+            mod_name               : "Neo Cortex",
             mod_license            : "APR",
             mod_version            : "1.0.0",
             mod_authors            : "thunderrock424242",
-            mod_description        : "adds a new type of logging method fatal"
+            mod_description        : "enhances ai behavior with a new ai goal and scoring tree with open source customization."
     ]
     inputs.properties replaceProperties
     expand replaceProperties
