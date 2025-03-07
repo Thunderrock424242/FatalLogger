@@ -146,11 +146,11 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             neo_version_range      : "21.1.73",
             loader_version_range   : "5.0.3",
             mod_id                 : "fatallogger",
-            mod_name               : "Wilderness Odyssey API",
+            mod_name               : "Fatal Logger",
             mod_license            : "APR",
             mod_version            : "1.0.0",
             mod_authors            : "thunderrock424242",
-            mod_description        : "a api for my modpack"
+            mod_description        : "adds a new type of logging method fatal"
     ]
     inputs.properties replaceProperties
     expand replaceProperties
