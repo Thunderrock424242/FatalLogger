@@ -1,6 +1,6 @@
-package com.example.examplemod;
+package com.thunder.fatallogger.MainModClass;
 
-import org.slf4j.Logger;
+import com.thunder.fatallogger.ExtendedLogger;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -15,14 +15,15 @@ public class FatalLoggerMainModClass {
         /**
          * The constant LOGGER.
          */
-        public static final Logger LOGGER = LoggerFactory.getLogger("FatalLogger");
+        public static final ExtendedLogger LOGGER = (ExtendedLogger)
+                LoggerFactory.getLogger(FatalLoggerMainModClass.class);
 
         public static final String MOD_ID = "FatalLogger";
 
 
 
         public FatalLoggerMainModClass(IEventBus modEventBus, ModContainer container) {
-            LOGGER.info("WildernessOdysseyAPI initialized. I will also start to track mod conflicts");
+            LOGGER.info("Fatal Logger initialized.");
             // Register mod setup and creative tabs
             modEventBus.addListener(this::commonSetup);
 
